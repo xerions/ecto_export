@@ -49,7 +49,6 @@ defmodule Ecto.Export.Worker do
         for entry <- entries, do: formatter.import(entry)
     end
     formatted_entries = :lists.flatten formatted_entries
-    :io.format "ordered_modules: ~p~n formatted_entries: ~p~n", [ordered_modules, formatted_entries]
     for model <- ordered_modules do
       case Enum.filter(formatted_entries, &(model == &1.__struct__)) do
         [] -> :ok
@@ -117,4 +116,8 @@ defmodule Ecto.Export.Worker do
   defp export_association(%Ecto.Association.Has{:field => field}, entry), do: Map.delete(entry, field)
   defp export_association(_, entry), do: entry
 
+  defp print(e) do
+    :io.format "print: ~p~n", [e]
+    e
+  end
 end

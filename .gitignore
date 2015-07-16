@@ -1,6 +1,7 @@
 /_build
 /cover
 /deps
+export.json
 erl_crash.dump
 *.ez
 *~
