@@ -6,7 +6,8 @@ defmodule Ecto.Export.Dispatcher do
 
   def start_export(repo, models, options \\ []), do: call {:start_export, repo, models, options}
 
-  def check_status(id), do: call {:check_status, id}
+  def check_status(%{"id" => id}) when is_bitstring(id), do: call {:check_status, String.to_integer(id)}
+  def check_status(_), do: {:error, :bad_id}
 
   def done(val), do: cast {:reply, val}
 
