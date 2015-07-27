@@ -18,11 +18,11 @@ defmodule EctoExport.Mixfile do
   defp deps do
     [{:postgrex, ">= 0.0.0", optional: true},
      {:mariaex, ">= 0.0.0", optional: true},
-     {:ecto, "~> 0.13.0"},
+     {:ecto, ">= 0.12.0"},
      {:ecto_it, "~> 0.1.0", optional: true},
      {:ecto_migrate, "~> 0.4.0"},
      {:exrun, github: "liveforeverx/exrun"},
-     {:jsx, github: "talentdeficit/jsx", branch: "develop"}
+     {:jsx, "~> 2.6.2", [hex: :jsx]}
     ]
   end
 end

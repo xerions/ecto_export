@@ -40,7 +40,7 @@ defmodule Ecto.Export.Dispatcher do
     {:reply, reply, state}
   end
 
-  def handle_cast({:reply, reply}, from, state), do: {:noreply, delete_job_and_index(state, from)}
+  def handle_cast({:reply, reply, from}, state), do: {:noreply, delete_job_and_index(state, from)}
   def handle_cast({:progress_update, new_val, from}, state) do
     case get_job(state, from) do
       nil ->
