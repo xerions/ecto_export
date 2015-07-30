@@ -3,7 +3,7 @@
   "ecto_it": {:hex, :ecto_it, "0.1.2"},
   "ecto_migrate": {:hex, :ecto_migrate, "0.4.1"},
   "exrun": {:git, "git://github.com/liveforeverx/exrun.git", "f41a53e47ce347b7230fcbcdc94f30ab9ded7d03", []},
-  "jsx": {:git, "git://github.com/talentdeficit/jsx.git", "a67186ddd251f9a3fedecfbb895483a0ec092c09", [branch: "develop"]},
+  "jsx": {:hex, :jsx, "2.6.2"},
   "mariaex": {:hex, :mariaex, "0.3.2"},
   "poolboy": {:hex, :poolboy, "1.5.1"},
   "postgrex": {:hex, :postgrex, "0.8.4"}}
