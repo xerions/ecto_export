@@ -1,6 +1,6 @@
 defmodule Ecto.Export.Formatter.JSON do
 
-  def export(entries, filehandle) do
+  def export(filehandle, entries) do
     IO.write(filehandle, <<"[">>)
     export_entries(Enum.take(entries, 1), Stream.drop(entries, 1), filehandle)
     IO.write(filehandle, <<"]">>)

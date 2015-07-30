@@ -34,7 +34,7 @@ defmodule Ecto.Export.Worker do
     entries = export_stream repo, ordered_modules, dispatcher
     case File.open filename, [:write, :utf8] do
       {ok, filehandle} ->
-        ret = formatter.export(entries, filehandle)
+        ret = formatter.export(filehandle, entries)
         File.close filehandle
         GenServer.cast dispatcher, {:reply, ret, self}
       err -> err
