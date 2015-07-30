@@ -111,16 +111,6 @@ defmodule Ecto.Export.Worker do
     end
   end
 
-  defp update_report(model, ordered_modules, stage) do
-    positions_models = Enum.zip(Enum.into(1..length(ordered_modules), []), ordered_modules)
-    {pos, _} =
-      Enum.find(positions_models,
-        fn({_, maybe_model}) when maybe_model == model -> true
-          (_) -> false
-        end)
-    Ecto.Export.Dispatcher.progress_update({stage, 100 * pos/length(ordered_modules)})
-  end
-
   defp preprocess(entry_map, model) do
     entry_map
       |> Map.delete(:__meta__)
