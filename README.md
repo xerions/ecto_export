@@ -1,4 +1,4 @@
-# EctoExport # [![Coverage Status](https://coveralls.io/repos/xerions/ecto_export/badge.svg?branch=master&service=github)](https://coveralls.io/github/xerions/ecto_export?branch=master)
+# EctoExport # [![Build Status](https://travis-ci.org/xerions/ecto_export.svg)](https://travis-ci.org/xerions/ecto_export) [![Coverage Status](https://coveralls.io/repos/xerions/ecto_export/badge.svg?branch=master&service=github)](https://coveralls.io/github/xerions/ecto_export?branch=master)
 
 An elixir application for exporting/importing data from an [ecto][ecto] based application.
 
