@@ -6,7 +6,8 @@ defmodule EctoExport.Mixfile do
      version: "0.0.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps]
+     deps: deps,
+     test_coverage: [tool: Coverex.Task, coveralls: true]]
   end
 
   def application do
@@ -21,7 +22,9 @@ defmodule EctoExport.Mixfile do
      {:ecto_it, "~> 0.2.0", optional: true},
      {:ecto_migrate, "~> 0.6.1"},
      {:exrun, github: "liveforeverx/exrun"},
-     {:jsx, "~> 2.6.2", [hex: :jsx]}
+     {:jsx, "~> 2.6.2", [hex: :jsx]},
+
+     {:coverex, "~> 1.4.1", only: :test}
     ]
   end
 end
