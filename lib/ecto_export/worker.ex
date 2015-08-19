@@ -4,15 +4,13 @@ defmodule Ecto.Export.Worker do
 
   @default_batch_size 1000
 
-  def export_import(repo, modules, dispatcher, options \\ %{}) do
+  def export_import(repo, modules, options \\ %{}) do
     filename = options["filename"]
-    reply =
-      cond do
-        is_nil(filename) -> {:error, :no_filename}
-        options["import"] -> import(repo, modules, dispatcher, options, filename)
-        true -> export(repo, modules, dispatcher, options, filename)
-      end
-    GenServer.cast dispatcher, {:reply, reply}
+    cond do
+      is_nil(filename) -> {:error, :no_filename}
+      options["import"] -> import(repo, options, filename)
+      true -> export(repo, modules, options, filename)
+    end
   end
 
   def insert(repo, entry) do
@@ -21,47 +19,35 @@ defmodule Ecto.Export.Worker do
     end
   end
 
-  defp import(repo, modules, dispatcher, options, filename) do
-    case import_stream(filename) do
-      {:error, _} = e -> e
-      string_stream -> do_import(string_stream, repo, modules, options)
-    end
-  end
+  defp import(repo, options, filename), 
+    do: import_stream(filename) |> do_import(repo, options)
 
-  defp export(repo, modules, dispatcher, options, filename) do
+  defp export(repo, modules, options, filename) do
     formatter = options[:formatter] || Ecto.Export.Formatter.JSON
     ordered_modules = order_modules(modules)
-    entries = export_stream repo, ordered_modules, dispatcher
-    case File.open filename, [:write, :utf8] do
-      {ok, filehandle} ->
-        ret = formatter.export(filehandle, entries)
-        File.close filehandle
-        GenServer.cast dispatcher, {:reply, ret, self}
-      err -> err
-    end
+    entries = export_stream repo, ordered_modules
+    filehandle = File.open! filename, [:write, :utf8]
+    formatter.export(filehandle, entries)
+    File.close filehandle
+    Dispatcher.done # XXX: I don't sure that it is needed
   end
 
   def import_stream(filename) do
-    case File.open filename, [:read, :utf8] do
-      {:ok, filehandle} ->
-        Stream.resource(
-          fn -> {:ok, handle} = File.open filename, [:read, :utf8]
-                {handle, 0} end,
-          fn {filehandle, linecount} ->
-            case IO.read(filehandle, :line) do
-              :eof -> {:halt, filehandle}
-              {:error, _} = err -> {:halt, filehandle}
-              data ->
-                Ecto.Export.Dispatcher.progress_update({:read_file, linecount})
-                {[data], {filehandle, linecount + 1}}
-            end
-          end,
-          fn filehandle -> File.close(filehandle) end)
-      _ -> {:error, :open_file}
-    end
+    Stream.resource(
+      fn -> {File.open!(filename, [:read, :utf8]), 0} end,
+      fn {filehandle, linecount} ->
+        case IO.read(filehandle, :line) do
+          :eof -> {:halt, filehandle}
+          {:error, _} = _err -> {:halt, filehandle}
+          data ->
+            Dispatcher.progress_update({:read_file, linecount})
+            {[data], {filehandle, linecount + 1}}
+        end
+      end,
+      fn filehandle -> File.close(filehandle) end)
   end
 
-  defp export_stream(repo, modules, dispatcher) do
+  defp export_stream(repo, modules) do
     Stream.resource(
       fn -> {modules, 0, -1} end,
       fn {modules, count, offset} ->
@@ -79,19 +65,17 @@ defmodule Ecto.Export.Worker do
   defp get_next_entries({[], _, _}, _), do: {:halt, nil}
 
   defp get_next_entries([], {[], _, _}, _), do: {:halt, nil}
-  defp get_next_entries([], {[_ | rest], count, offset}, repo) do
-
+  defp get_next_entries([], {[_ | rest], count, _offset}, repo) do
     get_next_entries({rest, count, -1}, repo)
   end
-  defp get_next_entries(entries, {[model | _] = models, count, offset}, repo) do
+  defp get_next_entries(entries, {[model | _] = models, count, offset}, _repo) do
     prepared_entries = Enum.map entries, &preprocess(&1, model)
     count =  count + Enum.count(prepared_entries)
-    Ecto.Export.Dispatcher.progress_update({:write_file, count})
+    Dispatcher.progress_update({:write_file, count})
     {prepared_entries, {models, count, offset}}
   end
 
-  defp do_import(string_stream, repo, modules, options) do
-    ordered_modules = order_modules(modules)
+  defp do_import(string_stream, repo, options) do
     formatter = options[:formatter] || Ecto.Export.Formatter.JSON
     formatter.import(repo, string_stream)
   end
