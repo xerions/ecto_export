@@ -1,10 +1,10 @@
-# EctoExport # [![Build Status](https://travis-ci.org/xerions/ecto_export.svg)](https://travis-ci.org/xerions/ecto_export) [![Coverage Status](https://coveralls.io/repos/xerions/ecto_export/badge.svg?branch=master&service=github)](https://coveralls.io/github/xerions/ecto_export?branch=master)
+# EctoExport [![Build Status](https://travis-ci.org/xerions/ecto_export.svg)](https://travis-ci.org/xerions/ecto_export) [![Coverage Status](https://coveralls.io/repos/xerions/ecto_export/badge.svg?branch=master&service=github)](https://coveralls.io/github/xerions/ecto_export?branch=master)
 
 An elixir application for exporting/importing data from an [ecto][ecto] based application.
 
-## Usage ##
+## Usage
 
-### Dependency ###
+### Dependency
 
 Add ecto_export es dependeny to your applications mix.exs file:
 
@@ -12,37 +12,46 @@ Add ecto_export es dependeny to your applications mix.exs file:
   {:ecto_export, github: "xerions/ecto_export"}
 ```
 
-### Export/Import data ###
+### Export/Import data
 
-Start an Export job by calling Ecto.Export.export, filename must currently be provided.
+Start an Export job by calling Ecto.Export.create, filename must currently be provided.
 ```
-1> Ecto.Export.export(Repo, [MyModel1, MyModel2], %{"filename" => "export.json"})
+1> Ecto.Export.create(Repo, [MyModel1, MyModel2], %{"filename" => "export.json"})
 {:ok, 1}
 ```
 When exporting, dependencies between exported Models are handled by ecto_export.
 The depending Model will only be contained in the output after the "parent" model.
 
-Start an Import job by calling Ecto.Export.export, filename must currently be provided.
+Start an Import job by calling Ecto.Export.create, filename must currently be provided.
 ```
-2> Ecto.Export.export(Repo, [MyModule1, MyModule2], %{"filename" => "export.json", "import" => true})
+2> Ecto.Export.create(Repo, [MyModule1, MyModule2], %{"filename" => "export.json", "import" => true})
 {:ok, 2}
 ```
 
 Check for the status of a running job:
 ```
-3> Ecto.Export.check_job([id: 1])
+3> Ecto.Export.check(1)
 {:ok, {:read_file, 7}}
 4> :timer.sleep(5000)
 :ok
-5> Ecto.Export.check_job([id: 1])
+5> Ecto.Export.check(1)
 {:ok, :job_finished}
 ```
 The jobs progress is the stage (:read_file/:write_file) and the number of objects/lines already processed (7).
 When the job has finished {:ok, :job_finished} is returned.
 
+Stop job:
+```
+6> Ecto.Export.stop(2)
+:ok
+7> Ecto.Export.check(2)
+{:ok, :job_finished}
+```
+
+
 For further information, use the documentation which is provided in the sourcecode and available through elixir introspection.
 
-### Customized formatter ###
+### Customized formatter
 
 Which formatter to use for Export/Import is specified with the "formatter" option.
 Default is Ecto.Export.Formatter.JSON.

@@ -47,7 +47,7 @@ defmodule Ecto.Export.Formatter.JSON do
     reply = :jsx_to_term.handle_event :start_object, state
     {{repo, n + 1}, reply}
   end
-  def handle_event(:end_object, {{repo, 1}, state = {[obj | rest], config}}) do
+  def handle_event(:end_object, {{repo, 1}, _state = {[obj | rest], config}}) do
     finished = :jsx_to_term.finish({[obj], config}) |> :jsx_to_term.get_value
     imported = fix_structs(finished)
     Ecto.Export.Worker.insert(repo, imported)

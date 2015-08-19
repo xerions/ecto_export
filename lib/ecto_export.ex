@@ -2,7 +2,6 @@ defmodule Ecto.Export do
   @moduledoc """
   Ecto plugin for exporting and importing Ecto.Model application data.
   """
-  import Ecto.Query
   alias Ecto.Export.Dispatcher, as: Dispatcher
 
   use Application
@@ -15,7 +14,7 @@ defmodule Ecto.Export do
   end
 
   @doc """
-  Start an export or import job.
+  Create an export or import job.
 
   ## Params
 
@@ -31,21 +30,34 @@ defmodule Ecto.Export do
   `{:ok, job_id}`
 
   """
-  def export(repo, models, options \\ []), do: Dispatcher.start_export(repo, models, options)
+  def create(repo, models, options), do: Dispatcher.start_export(repo, models, options)
+
+  @doc """
+  Delete job. 
+  Job process will be stopped if needed and job description will be removed from dispatcher.
+
+  ## Params
+
+  * `job` - id or pid of job to stop
+  
+  ## Result
+
+  `:ok`
+  """
+  def stop(job), do: Dispatcher.done(job)
 
   @doc """
   Check the status of a former started job
 
   ## Params
 
-  * `options` - optional, Map with the following options
-    * `"id"` - job_id obtained when starting the job
+  * `id` - job_id obtained when starting the job
 
   ## Result
 
-  * `{:ok, {stage, progress}}` where stage is an atom and progress is an integer representing 0-100%
+  * `{:ok, {stage, progress} | :job_finished}` where stage is an atom and progress is an integer representing 0-100%
   * `{:error, :not_found}`
 
   """
-  def check_job(args), do: Dispatcher.check_status(args)
+  def check(id), do: Dispatcher.check_status(id)
 end

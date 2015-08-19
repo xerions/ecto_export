@@ -6,11 +6,11 @@ defmodule Ecto.Export.Dispatcher do
 
   def start_export(repo, models, options \\ []), do: call {:start_export, repo, models, options}
 
-  def check_status(%{"id" => id}) when is_bitstring(id), do: call {:check_status, String.to_integer(id)}
-  def check_status(%{"id" => id}) when is_integer(id), do: call {:check_status, id}
+  def check_status(id) when is_integer(id), do: call {:check_status, id}
   def check_status(_), do: {:error, :bad_id}
 
-  def done(val), do: cast {:reply, val}
+  def done, do: cast {:done, self}
+  def done(val), do: cast {:done, val}
 
   def progress_update(val), do: cast {:progress_update, val, self}
 
@@ -23,11 +23,13 @@ defmodule Ecto.Export.Dispatcher do
 
   def handle_call({:start_export, repo, models, options}, _from, state) do
     jobcounter = get_jobcounter(state)
-    pid = :erlang.spawn_link fn() -> Worker.export_import(repo, models, self, options) end
-    {:reply, {:ok, jobcounter},
-     state |> put_jobcounter(jobcounter + 1) |> put_job(pid, {repo, models, options, pid, jobcounter, 0}) |> put_index(jobcounter, pid)}
+    {:ok, pid} = Task.start_link(Worker, :export_import, [repo, models, options])
+    {:reply, {:ok, jobcounter}, state 
+                                |> put_jobcounter(jobcounter + 1) 
+                                |> put_job(pid, {repo, models, options, pid, jobcounter, 0}) 
+                                |> put_index(jobcounter, pid) }
   end
-  def handle_call({:check_status, id}, from, state) do
+  def handle_call({:check_status, id}, _from, state) do
     reply =
       case get_index(state, id) do
         nil -> cond do
@@ -40,7 +42,7 @@ defmodule Ecto.Export.Dispatcher do
     {:reply, reply, state}
   end
 
-  def handle_cast({:reply, reply, from}, state), do: {:noreply, delete_job_and_index(state, from)}
+  def handle_cast({:done, job}, state), do: {:noreply, delete_job_and_index(state, job)}
   def handle_cast({:progress_update, new_val, from}, state) do
     case get_job(state, from) do
       nil ->
@@ -50,14 +52,16 @@ defmodule Ecto.Export.Dispatcher do
     end
   end
 
-  def handle_info({:EXIT, from, reason}, state), do: {:noreply, delete_job_and_index(state, from)}
-
+  def handle_info({:EXIT, from, _reason}, state), do: {:noreply, delete_job_and_index(state, from)}
   def handle_info(_, _, state), do: {:noreply, state}
 
+  defp delete_job_and_index(state, id) when is_integer(id), do: delete_job_and_index(state, get_index(state, id))
   defp delete_job_and_index(state, job) do
     case get_job(state, job) do
       nil -> state
-      {_repo, _models, _options, _pid, jobcounter, _progress} -> delete_job(state, job) |> delete_index(jobcounter)
+      {_repo, _models, _options, pid, jobcounter, _progress} -> 
+        stop_task(pid)
+        delete_job(state, job) |> delete_index(jobcounter)
     end
   end
 
@@ -71,6 +75,14 @@ defmodule Ecto.Export.Dispatcher do
   defp get_index(%__MODULE__{jobcounter_index: jobcounter_index}, id), do: Map.get(jobcounter_index, id)
   defp put_index(state = %__MODULE__{jobcounter_index: jobcounter_index}, id, pid), do: %{state | jobcounter_index: Map.put(jobcounter_index, id, pid)}
   defp delete_index(%__MODULE__{jobcounter_index: jcidx} = state, id), do: %{state | jobcounter_index: Map.delete(jcidx, id)}
+
+  defp stop_task(pid) when is_pid(pid) do
+    case Process.alive?(pid) do
+      true -> Process.exit(pid, :kill)
+      false -> []
+    end
+  end
+  defp stop_task(_), do: []
 
   defp call(params), do: GenServer.call(__MODULE__, params)
   defp cast(params), do: GenServer.cast(__MODULE__, params)
