@@ -21,7 +21,10 @@ defmodule Ecto.Export do
   * `repo` - mandatory, the Ecto.Repo which contains the models to be exported
   * `models` - mandatory, list of modules which implement Ecto.Model
   * `options` - optional, Map whith the following options
-    * `"filename"` - mandatory, string, the filename to export/import from
+    * `"export_uri"` - mandatory, string, the uri to export/import from, supported protocols:
+      * `"file://"` - local filesystem
+      * `"zmq-tcp://"` - zero mq endpoint
+      * `"http://"` - http endpoint
     * `"import"` - boolean, if true starts an import - default is false
     * `"formatter"` - atom, defines which module to use for string conversion - default is `Ecto.Export.Formatter.JSON`
 
@@ -33,13 +36,13 @@ defmodule Ecto.Export do
   def create(repo, models, options), do: Dispatcher.start_export(repo, models, options)
 
   @doc """
-  Delete job. 
+  Delete job.
   Job process will be stopped if needed and job description will be removed from dispatcher.
 
   ## Params
 
   * `job` - id or pid of job to stop
-  
+
   ## Result
 
   `:ok`

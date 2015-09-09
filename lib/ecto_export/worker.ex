@@ -5,11 +5,11 @@ defmodule Ecto.Export.Worker do
   @default_batch_size 1000
 
   def export_import(repo, modules, options \\ %{}) do
-    filename = options["filename"]
+    export_uri = options["export_uri"]
     cond do
-      is_nil(filename) -> {:error, :no_filename}
-      options["import"] -> import(repo, options, filename)
-      true -> export(repo, modules, options, filename)
+      is_nil(export_uri) -> {:error, :no_export_uri}
+      options["import"] -> import(repo, options, export_uri)
+      true -> export(repo, modules, options, export_uri)
     end
   end
 
@@ -19,32 +19,24 @@ defmodule Ecto.Export.Worker do
     end
   end
 
-  defp import(repo, options, filename), 
-    do: import_stream(filename) |> do_import(repo, options)
+  defp import(repo, options, export_uri),
+    do: import_stream(export_uri) |> do_import(repo, options)
 
-  defp export(repo, modules, options, filename) do
+  defp export(repo, modules, options, export_uri) do
     formatter = options[:formatter] || Ecto.Export.Formatter.JSON
+    {streamer, cut_uri} = find_stream_module export_uri
     ordered_modules = order_modules(modules)
     entries = export_stream repo, ordered_modules
-    filehandle = File.open! filename, [:write, :utf8]
-    formatter.export(filehandle, entries)
-    File.close filehandle
+
+    formatted_entries = formatter.export(entries)
+    streamer.send_stream formatted_entries, cut_uri
+
     Dispatcher.done # XXX: I don't sure that it is needed
   end
 
-  def import_stream(filename) do
-    Stream.resource(
-      fn -> {File.open!(filename, [:read, :utf8]), 0} end,
-      fn {filehandle, linecount} ->
-        case IO.read(filehandle, :line) do
-          :eof -> {:halt, filehandle}
-          {:error, _} = _err -> {:halt, filehandle}
-          data ->
-            Dispatcher.progress_update({:read_file, linecount})
-            {[data], {filehandle, linecount + 1}}
-        end
-      end,
-      fn filehandle -> File.close(filehandle) end)
+  def import_stream(export_uri) do
+    {streamer, cut_uri} = find_stream_module export_uri
+    streamer.receive_stream cut_uri
   end
 
   defp export_stream(repo, modules) do
@@ -111,5 +103,7 @@ defmodule Ecto.Export.Worker do
   defp export_association(_, entry), do: entry
 
   defp batch_size, do: Application.get_env(:ecto_export, :batch_size, @default_batch_size)
+
+  defp find_stream_module("file://" <> rest), do: {Ecto.Export.Stream.File, rest}
 
 end

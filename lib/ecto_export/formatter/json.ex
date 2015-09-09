@@ -1,10 +1,13 @@
 defmodule Ecto.Export.Formatter.JSON do
 
-  def export(filehandle, entries) do
-    IO.write(filehandle, <<"[">>)
-    export_entries(Enum.take(entries, 1), Stream.drop(entries, 1), filehandle)
-    IO.write(filehandle, <<"]">>)
-    :ok
+  def export(entries) do
+    case Enum.take(entries, 1) do
+      [] -> [<<"[]">>]
+      first_entry ->
+        formatted_entries = Stream.map Stream.drop(entries, 1), &export_entry/1
+        prefixed_formatted = Stream.concat [<<"[">>, :jsx.encode(first_entry)], formatted_entries
+        Stream.concat prefixed_formatted, [<<"]">>]
+    end
   end
 
   def import(repo, string_stream) do
@@ -32,11 +35,7 @@ defmodule Ecto.Export.Formatter.JSON do
 
   defp string_to_elixir_atom(str), do: :erlang.list_to_atom(String.to_char_list(str))
 
-  defp export_entries([], _, _), do: nil
-  defp export_entries([first], entries, filehandle) do
-    IO.write(filehandle, :jsx.encode(first))
-    Enum.reduce entries, nil, fn(entry, _) -> IO.write(filehandle, <<",\n">> <> :jsx.encode(entry)) end
-  end
+  defp export_entry(entry), do: <<",\n">> <> :jsx.encode(entry) 
 
   def init([repo]) do
     {{repo, 0}, :jsx_to_term.start_term([:return_maps])}

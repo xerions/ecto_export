@@ -30,7 +30,7 @@ defmodule EctoExportTest do
   test "export import" do
     insert_data
 
-    assert {:ok, export_id} = Ecto.Export.create(Repo, @models, %{"filename" => "export.json"})
+    assert {:ok, export_id} = Ecto.Export.create(Repo, @models, %{"export_uri" => "file://export.json"})
 
     assert :ok = wait_for_job(export_id)
 
@@ -38,7 +38,7 @@ defmodule EctoExportTest do
 
     assert {:error, :not_found} == Ecto.Export.check(100)
 
-    assert {:ok, import_id} = Ecto.Export.create(Repo, @models, %{"filename" => "export.json", "import" => true})
+    assert {:ok, import_id} = Ecto.Export.create(Repo, @models, %{"export_uri" => "file://export.json", "import" => true})
 
     assert :ok = wait_for_job(import_id)
 
@@ -51,11 +51,11 @@ defmodule EctoExportTest do
   test "delete" do
     insert_data 
 
-    assert {:ok, id} = Ecto.Export.create(Repo, @models, %{"filename" => "export.json"})
+    assert {:ok, id} = Ecto.Export.create(Repo, @models, %{"export_uri" => "file://export.json"})
     assert :ok = Ecto.Export.stop(id)
     assert {:ok, :job_finished} == Ecto.Export.check(id)
 
-    assert {:ok, id} = Ecto.Export.create(Repo, @models, %{"filename" => "export.json"})
+    assert {:ok, id} = Ecto.Export.create(Repo, @models, %{"export_uri" => "file://export.json"})
     :timer.sleep(10)
     assert :ok = Ecto.Export.stop(id)
     assert {:ok, :job_finished} == Ecto.Export.check(id)
@@ -69,7 +69,7 @@ defmodule EctoExportTest do
     filename = "./abc/export.json"
 
     # it will raise exception
-    assert {:ok, id} = Ecto.Export.create(Repo, @models, %{"filename" => filename})
+    assert {:ok, id} = Ecto.Export.create(Repo, @models, %{"export_uri" => "file://" <> filename})
     assert :ok = wait_for_job(id)
     assert false == File.exists?(filename)
     assert :ok = Ecto.Export.stop(id)
